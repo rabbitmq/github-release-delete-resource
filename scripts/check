@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+
+/opt/resource/github-release-delete-resource check
