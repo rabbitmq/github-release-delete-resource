@@ -29,14 +29,14 @@ make push-docker-image
 
 ### `check`: Does nothing. Should not be used.
 
-### `in`: Does nothing. Should not be used
+### `in`: Does nothing. Should not be used.
 
 ### `out`: Delete GitHub releases.
 
 ### Parameters
 
-* `tag_filter`: *Required.* A Java regex to target the to-be-deleted releases
-* `keep_last_n`: *Required.* The number of releases to keep
+* `tag_filter`: *Required.* A Java regex to target the to-be-deleted releases.
+* `keep_last_n`: *Required.* The number of releases to keep.
 
 # Examples
 
@@ -50,6 +50,7 @@ resource_types:
       repository: pivotalrabbitmq/github-release-delete-resource
       tag: latest
 
+# declare a repository with releases to delete
 resources:
   - name: rabbitmq-java-tools-dev-delete
     type: github-release-delete
