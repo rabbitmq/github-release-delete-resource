@@ -65,3 +65,12 @@ resources:
       tag_filter: '^v-stream-perf-test-0.1.0-SNAPSHOT-[0-9]{8}-[0-9]{6}$'
       keep_last_n: 2
 ```
+
+# License and Copyright
+
+(c) 2021 VMware, Inc. or its affiliates.
+
+This package, the Concourse GitHub Release Delete Resource, is licensed
+under the Mozilla Public License 2.0 ("MPL").
+
+See [LICENSE](./LICENSE).
