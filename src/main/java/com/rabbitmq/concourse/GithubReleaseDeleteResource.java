@@ -7,7 +7,6 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -23,6 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -33,6 +33,8 @@ public class GithubReleaseDeleteResource {
       new GsonBuilder()
           .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeDeserializer())
           .create();
+  private static final String JSON_DELETED_VERSION =
+      "{\n" + "  \"version\": { \"version\": \"<DELETED>\" },\n" + "  \"metadata\": [ ]\n" + "}";
 
   public static void main(String[] args) {
     Scanner scanner = new Scanner(System.in);
@@ -55,34 +57,31 @@ public class GithubReleaseDeleteResource {
       if (!filteredReleases.isEmpty()) {
         Collections.sort(filteredReleases, Comparator.comparing(Release::publication));
       }
-      List<Release> toDeleteReleases = filterForDeletion(filteredReleases, input.params().keepLastN());
+      List<Release> toDeleteReleases =
+          filterForDeletion(filteredReleases, input.params().keepLastN());
 
       logGreen("Tag filter: " + input.params().tagFilter());
 
-      filteredReleases.forEach(r -> {
-        if (toDeleteReleases.contains(r)) {
-          logYellow("Removing release with tag " + r.tag());
-          try {
-            access.delete(r);
-            access.deleteTag(r);
-          } catch (Exception e) {
-            logRed("Error while deleting release " + r + ": " + e.getMessage());
-          }
-        } else {
-          log(" Keeping release with tag " + r.tag());
-        }
-      });
+      filteredReleases.forEach(
+          r -> {
+            if (toDeleteReleases.contains(r)) {
+              logYellow("Removing release with tag " + r.tag());
+              try {
+                access.delete(r);
+                access.deleteTag(r);
+              } catch (Exception e) {
+                logRed("Error while deleting release " + r + ": " + e.getMessage());
+              }
+            } else {
+              log(" Keeping release with tag " + r.tag());
+            }
+          });
 
       out(JSON_DELETED_VERSION);
     } else {
       throw new IllegalArgumentException("command not supported: " + command);
     }
   }
-
-  private static final String JSON_DELETED_VERSION = "{\n"
-      + "  \"version\": { \"version\": \"<DELETED>\" },\n"
-      + "  \"metadata\": [ ]\n"
-      + "}";
 
   static void logGreen(String message) {
     log("\u001B[32m" + message + "\u001B[0m");
@@ -95,7 +94,6 @@ public class GithubReleaseDeleteResource {
   static void logRed(String message) {
     log("\u001B[31m" + message + "\u001B[0m");
   }
-
 
   static void log(String message) {
     System.err.println(message);
@@ -148,22 +146,40 @@ public class GithubReleaseDeleteResource {
       this.input = input;
     }
 
+    static String nextLink(String linkHeader) {
+      String nextLink = null;
+      for (String link : linkHeader.split(",")) {
+        // e.g.
+        // <https://api.github.com/repositories/343344332/releases?per_page=1&page=3>; rel="next"
+        String[] urlRel = link.split(";");
+        if ("rel=\"next\"".equals(urlRel[1].trim())) {
+          String url = urlRel[0].trim();
+          // removing the < and >
+          nextLink = url.substring(1, url.length() - 1);
+        }
+      }
+      return nextLink;
+    }
+
     @Override
     public List<Release> list() {
-      // TODO handle pagination (https://docs.github.com/en/rest/guides/traversing-with-pagination)
-      // link header:
-      // link: <https://api.github.com/repositories/343344332/releases?per_page=1&page=1>;
-      // rel="prev", <https://api.github.com/repositories/343344332/releases?per_page=1&page=3>;
-      // rel="next", <https://api.github.com/repositories/343344332/releases?per_page=1&page=4>;
-      // rel="last", <https://api.github.com/repositories/343344332/releases?per_page=1&page=1>;
-      // rel="first"
       HttpRequest request = requestBuilder("/releases").GET().build();
       try {
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        // TODO check response code
-        List<Release> releases =
-            GSON.fromJson(
-                response.body(), TypeToken.getParameterized(List.class, Release.class).getType());
+        Type type = TypeToken.getParameterized(List.class, Release.class).getType();
+        List<Release> releases = new ArrayList<>();
+        boolean hasMore = true;
+        while (hasMore) {
+          HttpResponse<String> response =
+              client.send(request, HttpResponse.BodyHandlers.ofString());
+          releases.addAll(GSON.fromJson(response.body(), type));
+          Optional<String> link = response.headers().firstValue("link");
+          String nextLink;
+          if (link.isPresent() && (nextLink = nextLink(link.get())) != null) {
+            request = requestBuilder().uri(URI.create(nextLink)).GET().build();
+          } else {
+            hasMore = false;
+          }
+        }
         return releases;
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -172,9 +188,7 @@ public class GithubReleaseDeleteResource {
 
     @Override
     public void delete(Release release) {
-      HttpRequest request = requestBuilder()
-          .DELETE()
-          .uri(URI.create(release.url())).build();
+      HttpRequest request = requestBuilder().DELETE().uri(URI.create(release.url())).build();
       try {
         HttpResponse<Void> response = client.send(request, BodyHandlers.discarding());
         // TODO check response code
@@ -185,7 +199,7 @@ public class GithubReleaseDeleteResource {
 
     @Override
     public void deleteTag(Release release) {
-      //https://api.github.com/repos/rabbitmq/rabbitmq-server-binaries-dev/git/refs/tags/v3.9.0-alpha-test.1
+      // https://api.github.com/repos/rabbitmq/rabbitmq-server-binaries-dev/git/refs/tags/v3.9.0-alpha-test.1
       HttpRequest request = requestBuilder("/git/refs/tags/" + release.tag()).DELETE().build();
       try {
         HttpResponse<Void> response = client.send(request, BodyHandlers.discarding());
@@ -195,26 +209,24 @@ public class GithubReleaseDeleteResource {
       }
     }
 
-
     private Builder requestBuilder() {
       return auth(HttpRequest.newBuilder());
     }
 
     private Builder requestBuilder(String path) {
-      return auth(HttpRequest.newBuilder()
-          .uri(
-              URI.create(
-                  "https://api.github.com/repos/"
-                      + input.source().owner()
-                      + "/"
-                      + input.source().repository()
-                      + path)));
-
+      return auth(
+          HttpRequest.newBuilder()
+              .uri(
+                  URI.create(
+                      "https://api.github.com/repos/"
+                          + input.source().owner()
+                          + "/"
+                          + input.source().repository()
+                          + path)));
     }
 
     private Builder auth(Builder builder) {
-      return builder
-          .setHeader("Authorization", "token " + input.source().accessToken());
+      return builder.setHeader("Authorization", "token " + input.source().accessToken());
     }
   }
 
