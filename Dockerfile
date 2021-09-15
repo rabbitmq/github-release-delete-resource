@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/graalvm-ce:java11-21.0.0.2 as builder
+FROM ghcr.io/graalvm/graalvm-ce:java11-21.2.0 as builder
 
 COPY target/github-release-delete-resource.jar .
 
