@@ -1,8 +1,6 @@
-FROM ghcr.io/graalvm/graalvm-ce:java17-21.3.0 as builder
+FROM ghcr.io/graalvm/native-image:java17-21.3.0-b1 as builder
 
 COPY target/github-release-delete-resource.jar .
-
-RUN gu install native-image
 
 RUN native-image -jar github-release-delete-resource.jar \
 		-H:Features="com.rabbitmq.concourse.NativeImageFeature" \
