@@ -1,5 +1,7 @@
 # Overview
 
+[![Build (Linux)](https://github.com/rabbitmq/github-release-delete-resource/actions/workflows/test-linux.yml/badge.svg)](https://github.com/rabbitmq/github-release-delete-resource/actions/workflows/test-linux.yml)
+
 This is a Concourse resource to delete a GitHub releases and their corresponding tags.
 
 # Building
