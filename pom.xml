@@ -33,6 +33,7 @@
     <junit.jupiter.version>5.8.2</junit.jupiter.version>
     <assertj.version>3.22.0</assertj.version>
     <mockito.version>4.4.0</mockito.version>
+    <spotless.version>2.22.1</spotless.version>
     <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
     <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
     <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
@@ -124,6 +125,27 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <googleJavaFormat>
+              <version>1.15.0</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+          </java>
+          <licenseHeader> <!-- specify either content or file, but not both -->
+            <content>/*
+              * This Source Code Form is subject to the terms of the Mozilla Public
+              * License, v. 2.0. If a copy of the MPL was not distributed with this
+              * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+              */
+            </content>
+          </licenseHeader>
+        </configuration>
+      </plugin>
 
     </plugins>
 
