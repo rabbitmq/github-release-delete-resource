@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image:ol8-java17-22.0.0.2 as builder
+FROM ghcr.io/graalvm/native-image:ol8-java17-22.1 as builder
 
 COPY target/github-release-delete-resource.jar .
 
