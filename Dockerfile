@@ -14,5 +14,5 @@ RUN set -eux; \
 	apt-get install --yes --no-install-recommends \
 		ca-certificates
 
-COPY --from=builder github-release-delete-resource /opt/resource/
+COPY --from=builder /app/github-release-delete-resource /opt/resource/
 COPY scripts/* /opt/resource/
