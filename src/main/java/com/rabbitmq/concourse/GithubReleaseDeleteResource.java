@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -83,9 +84,39 @@ public class GithubReleaseDeleteResource {
           });
 
       out(JSON_DELETED_VERSION);
+    } else if ("test".equals(command)) {
+      testSequence();
     } else {
       throw new IllegalArgumentException("command not supported: " + command);
     }
+  }
+
+  private static void testSequence() {
+    Consumer<String> display = m -> logGreen(m);
+    String message;
+    int exitCode = 0;
+    try {
+      String testUri = "https://www.wikipedia.org/";
+      logYellow("Starting test sequence, trying to reach " + testUri);
+      HttpRequest request = HttpRequest.newBuilder().uri(new URI(testUri)).GET().build();
+      HttpResponse<Void> response =
+          HttpClient.newBuilder()
+              .connectTimeout(Duration.ofSeconds(60))
+              .build()
+              .send(request, BodyHandlers.discarding());
+      int statusClass = response.statusCode() - response.statusCode() % 100;
+      message = "Response code is " + response.statusCode();
+      if (statusClass != 200) {
+        display = m -> logRed(m);
+        exitCode = 1;
+      }
+    } catch (Exception e) {
+      message = "Error during test sequence: " + e.getMessage();
+      display = m -> logRed(m);
+      exitCode = 1;
+    }
+    display.accept(message);
+    System.exit(exitCode);
   }
 
   static void logGreen(String message) {

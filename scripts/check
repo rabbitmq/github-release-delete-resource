@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 
-/opt/resource/github-release-delete-resource check
+java -jar /opt/resource/github-release-delete-resource.jar check
