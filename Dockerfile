@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as builder
+FROM ubuntu:24.04 AS builder
 
 RUN set -eux; \
 	apt-get update; \
@@ -27,7 +27,7 @@ RUN set -eux; \
 
 COPY target/github-release-delete-resource.jar /app
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 RUN set -eux; \
 	\
@@ -38,8 +38,8 @@ RUN set -eux; \
   ; \
 	rm -rf /var/lib/apt/lists/*
 
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
 
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk/jre
 RUN mkdir -p $JAVA_HOME
@@ -50,8 +50,8 @@ COPY --from=builder /app/* /opt/resource/
 RUN set -eux; \
     java -jar /opt/resource/github-release-delete-resource.jar test
 
-RUN groupadd --gid 1000 concourse
-RUN useradd --uid 1000 --gid concourse --comment "concourse user" concourse
+RUN groupadd --gid 1042 concourse
+RUN useradd --uid 1042 --gid concourse --comment "concourse user" concourse
 
 USER concourse:concourse
 
